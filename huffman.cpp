@@ -4,6 +4,8 @@
 #include <string>
 #include <unordered_map>
 #include <fstream>
+#include <clocale>
+
 
 using namespace std;
 
@@ -16,17 +18,16 @@ struct Node {
     Node *right;
 };
 
-
 // Отдельная структура для хранения корня дерева
 struct Tree { 
     Node* root;
 };
 
 // Компаратор для того, чтобы создавать приоритет очереди
+// Высший приоритет в очереди будет иметь элемент с наименьшей частотой
+// Это требуется для того, чтобы идти от листьев к корню
+// То есть внизу будут находиться элементы с наименьшей частотой
 struct Compare {
-    // Высший приоритет в очереди будет иметь элемент с наименьшей частотой
-    // Это требуется для того, чтобы идти от листьев к корню
-    // То есть внизу будут находиться элементы с наименьшей частотой
     bool operator() (Node* l, Node* r) {
         return r->frequency < l->frequency;
     }
@@ -44,6 +45,7 @@ Node* CreateNode(char ch = '\0', unsigned long long freq = 0, Node* l = NULL, No
     return node;
 }
 
+
 Tree BuildTree(priority_queue<Node*, vector<Node*>, Compare> nodes) {
     // Повторяем действия до тех пор, пока не получим корень дерева
     while (nodes.size() != 1) {
@@ -54,7 +56,7 @@ Tree BuildTree(priority_queue<Node*, vector<Node*>, Compare> nodes) {
 
         // Создаем новый узел, в котором эти элементы будут потомками
         // Приоритет нового узла будет равен сумме приоритетов этих элементов
-        nodes.push(CreateNode('0', l->frequency + r->frequency, l, r));
+        nodes.push(CreateNode('\0', l->frequency + r->frequency, l, r));
     }
 
     Tree tree;
@@ -78,7 +80,7 @@ void HuffmanCodes(Node* root, unordered_map<char, string>& huffmanCodes, string 
 
 
 //Функция для записи в файл
-void WriteToFile(string encode, ofstream& out) {
+void WriteToFile(const string& encode, ofstream& out) {
     unsigned char byte = 0;
     int counter = 0;
 
@@ -108,6 +110,7 @@ void WriteToFile(string encode, ofstream& out) {
 
 
 int main() {
+    setlocale(LC_ALL, "ru-RU.UTF-8");
     string source = ""; // исходная строка
     string encode = ""; // Закодированная строка
     unordered_map<char, unsigned long long> Tab; // Таблица частотности
@@ -116,11 +119,11 @@ int main() {
     ifstream in("text.txt");
     ofstream out("encode.txt");
 
-
     if (!in.is_open() || !out.is_open()) {
         cout << "File is not opened or not found!\n";
         exit(1);
     }
+
     // Считываю строку
     char ch;
     while(in.get(ch))
@@ -134,7 +137,6 @@ int main() {
     for (auto p: Tab)
         pQueue.push(CreateNode(p.first, p.second, NULL, NULL));
 
-   
     Tree tree = BuildTree(pQueue);
     
     // Формирую таблицу
@@ -147,8 +149,8 @@ int main() {
 
     cout << "Encode string is " << encode << endl;
 
-    for (auto p: huffmanCodes)
-        cout << "Char: " << p.first << " Code: " << p.second << endl; 
+    // for (auto p: huffmanCodes)
+    //     cout << "Char: " << p.first << " Code: " << p.second << endl; 
 
     return 0;
 }
