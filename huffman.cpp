@@ -147,18 +147,31 @@ string DecoderFromTree(Node* root, const string& encode) {
 }
 
 
-// string DecoderFromHuffmanCodes(const string& encode, const unordered_map<char, string>& huffmanCodes) {
-//     string decode = "";
+// Декодирование при помощи таблицы Хаффмана
+string DecoderFromHuffmanCodes(const string& encode, const unordered_map<char, string>& huffmanCodes) {
+    string decode = "";
+    
+    string code = "";
+    for (int i = 0; i < encode.size(); i++) {
+        code += encode[i];
 
-//     string code = "";
+        for (auto p: huffmanCodes) {
+            if (p.second == code) {
+                if (p.first == '_') {
+                    decode += '\n';
+                    code = ""; 
+                    break;
+                }
 
-//     for (int i = 0; i < encode.size(); i++) {
-
-//     }
-
-
-
-// }
+                decode += p.first;
+                code = "";
+                
+                break;
+            }
+        }
+    }
+    return decode;
+}
 
 
 string ReadInEncodeFile(ifstream& in, size_t bits) {
@@ -176,12 +189,13 @@ string ReadInEncodeFile(ifstream& in, size_t bits) {
         }
     }
 
-    int extra = 8 - bits;
+    if (encode.size() != 0) {
+        int extra = 8 - bits;
 
-    if (bits > 0) {
-        encode.erase(encode.size() - extra);
+        if (bits > 0) {
+            encode.erase(encode.size() - extra);
+        }
     }
-
     return encode;
 }
 
@@ -237,58 +251,56 @@ void HuffmanCoding(ifstream& in, ofstream& out) {
 }
 
 
-// void Decoding(ifstream& in, ifstream& ht) {
-//     string encodeText = "";
-//     string decodeText = "";
-//     unordered_map<char, string> huffmanCodes; // Таблица Хаффмана
-//     vector<string> fileInVector;
+void Decoding(ifstream& in, ifstream& ht) {
+    string encodeText = "";
+    string decodeText = "";
+    unordered_map<char, string> huffmanCodes; // Таблица Хаффмана
+    vector<string> fileInVector;
 
-//     string line = "";
-//     while (getline(ht, line))
-//         fileInVector.push_back(line);
+    string line = "";
+    while (getline(ht, line))
+        fileInVector.push_back(line);
 
-//     // До предпоследней строки
-//     // Так как предпоследняя строка это количество значащих битов
-//     for (int i = 0; i < fileInVector.size() - 1; i++) {
-//         string tmp = fileInVector[i];
-//         huffmanCodes[tmp[0]] = tmp.substr(2);
-//     }
-
-//     line = fileInVector[fileInVector.size() - 1];
-//     size_t bits = stoi(line.substr(5));
-
-//     encodeText = ReadInEncodeFile(in, bits);
-// }
-
-
-
-int main() {
-    ifstream in("text.txt");
-    ofstream out("encode.txt");
-    ifstream inE("encode.txt");
-    ifstream inHT("huffmanCodes.txt");
-
-    if (!in.is_open() || !out.is_open()) {
-        cout << "Error: File is not opened or not found!\n";
-        exit(1);
+    // До предпоследней строки
+    // Так как предпоследняя строка это количество значащих битов
+    for (int i = 0; i < fileInVector.size() - 1; i++) {
+        string tmp = fileInVector[i];
+        huffmanCodes[tmp[0]] = tmp.substr(2);
     }
 
-    // int choice = 1;
-    // cout << "Choose: " << endl;
-    // cout << "1: Coder" << endl;
-    // cout << "2: Decoder" << endl;
+    line = fileInVector[fileInVector.size() - 1];
+    size_t bits = stoi(line.substr(5));
+
+    encodeText = ReadInEncodeFile(in, bits);
+    cout << encodeText << endl;
+    decodeText = DecoderFromHuffmanCodes(encodeText, huffmanCodes);
+
+    cout << "Decode text is " << decodeText << endl;
+
+    in.close();
+    ht.close();
+}
+
+
+int main() {  
+    int choice = 0;
+    cout << "Choose: " << endl;
+    cout << "1: Coder" << endl;
+    cout << "2: Decoder" << endl;
     
-    //cin >> choice;
+    cin >> choice;
 
-    // if (choice != 1 || choice != 2) {
-    //     cout << "Choose from list!!!" << endl;
-    //     exit(1);
-    // }
-
-
-    HuffmanCoding(in, out);
-
-    // Decoding(inE, inHT);
+    if (choice == 1) {
+        ifstream in("text.txt");
+        ofstream out("encode.txt");
+        HuffmanCoding(in, out);
+    } else if (choice == 2) {
+        ifstream inE("encode.txt");
+        ifstream inHT("huffmanCodes.txt");
+        Decoding(inE, inHT);
+    } else {
+        cout << "Choose from list!!!" << endl;
+    }
 
     return 0;
 }
