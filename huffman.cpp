@@ -124,6 +124,27 @@ void WriteToFile(const string& encode, ofstream& out, size_t& counter) {
 // }
 
 
+string Decoder(Node* root, const string& encode) {
+    string decode = "";
+
+    Node* current = root;
+
+    for (int i = 0; i < encode.size(); i++) {
+        if (encode[i] == '0')
+            current = current->left;
+        if (encode[i] == '1')
+            current = current->right;
+
+        if (current->left == NULL && current->right == NULL) {
+            decode += current->key;
+            current = root;
+        }
+    }
+
+    return decode;
+}
+
+
 string ReadInEncodeFile(ifstream& in, size_t bits) {
     string encode = "";
     unsigned char byte;
@@ -136,33 +157,30 @@ string ReadInEncodeFile(ifstream& in, size_t bits) {
                 encode += '1';
             else
                 encode += '0';
-
-            encode += ((byte >> i) & mask);
         }
     }
-    
-    int extra = 8 - bits; // Размер последнего байта без лишних битов
 
-    if (extra > 0)
-        encode.erase(encode.size() - (bits + 2)); // С учетом терминального символа
+    int extra = 8 - bits;
 
-    encode += '\0';
+    if (bits > 0) {
+        encode.erase(encode.size() - extra); // С учетом терминального символа
+        encode += '\0';
+    }
 
     return encode;
-
 }
 
 
 int main() {
     // Locale не работает...
-    setlocale(LC_ALL, "ru-RU.UTF-8");
+    //setlocale(LC_ALL, "ru-RU.UTF-8");
     string source = ""; // исходная строка
     string encode = ""; // Закодированная строка
     unordered_map<char, unsigned long long> Tab; // Таблица частотности
     priority_queue<Node*, vector<Node*>, Compare> pQueue; // Очередь с приоритетом
     unordered_map<char, string> huffmanCodes; // Таблица Хаффмана
     ifstream in("text.txt");
-    //ofstream out("encode.txt");
+    ofstream out("encode.txt");
     //ofstream ht("huffmanTree.txt");
     ifstream inEncode("encode.txt");
     // if (!in.is_open() || !out.is_open()) {
@@ -192,11 +210,24 @@ int main() {
         encode += huffmanCodes[source[i]];
     
     size_t extraBits = 0;
-    //WriteToFile(encode, out, extraBits);
+    WriteToFile(encode, out, extraBits);
+
+    out.close();
 
     cout << "Encode string is " << encode << endl;
-
     string tmp = ReadInEncodeFile(inEncode, extraBits);
+    
+    for (int i = 0; i < tmp.size(); i++) {
+        if (tmp[i] != encode[i]) {
+            cout << "i = " << i << endl;
+        }
+    }
+    cout << "Encode string is " << tmp << endl;
+
+    string result = "";
+    result = Decoder(tree.root, encode);
+
+    cout << result << endl;
 
     // for (auto p: huffmanCodes)
     //     cout << "Char: " << p.first << " Code: " << p.second << endl; 
