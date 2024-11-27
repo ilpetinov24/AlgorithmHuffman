@@ -303,10 +303,12 @@ int main() {
     } else if (choice == 2) {
         ifstream inE("encode.txt");
         ifstream inHT("huffmanCodes.txt");
+
         if (!inE.is_open() || !inHT.is_open()) {
             cout << "File is not found!!!" << endl;
             exit(0);
         }
+        
         Decoding(inE, inHT);
     } else {
         cout << "Choose from list!!!" << endl;
