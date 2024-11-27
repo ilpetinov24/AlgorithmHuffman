@@ -293,10 +293,20 @@ int main() {
     if (choice == 1) {
         ifstream in("text.txt");
         ofstream out("encode.txt");
+        
+        if (!in.is_open() || !out.is_open()) {
+            cout << "File is not found!!!" << endl;
+            exit(0);
+        }
+
         HuffmanCoding(in, out);
     } else if (choice == 2) {
         ifstream inE("encode.txt");
         ifstream inHT("huffmanCodes.txt");
+        if (!inE.is_open() || !inHT.is_open()) {
+            cout << "File is not found!!!" << endl;
+            exit(0);
+        }
         Decoding(inE, inHT);
     } else {
         cout << "Choose from list!!!" << endl;
