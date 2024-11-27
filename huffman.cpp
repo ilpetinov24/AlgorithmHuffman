@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <fstream>
 #include <clocale>
-
+#include <stdlib.h>
 
 using namespace std;
 
@@ -48,6 +48,12 @@ Node* CreateNode(char ch = '\0', unsigned long long freq = 0, Node* l = NULL, No
 
 Tree BuildTree(priority_queue<Node*, vector<Node*>, Compare> nodes) {
     // Повторяем действия до тех пор, пока не получим корень дерева
+    Tree tree;
+    tree.root = NULL;
+    
+    if (nodes.size() == 0)
+        return tree;
+
     while (nodes.size() != 1) {
         Node* l = nodes.top();
         nodes.pop();
@@ -59,7 +65,6 @@ Tree BuildTree(priority_queue<Node*, vector<Node*>, Compare> nodes) {
         nodes.push(CreateNode('\0', l->frequency + r->frequency, l, r));
     }
 
-    Tree tree;
     tree.root = nodes.top();
     return tree;
 }
@@ -79,13 +84,12 @@ void HuffmanCodes(Node* root, unordered_map<char, string>& huffmanCodes, string 
 }
 
 
-//Функция для записи в файл
+// Функция для записи закодированных данных в файл
 void WriteToFile(const string& encode, ofstream& out, size_t& counter) {
     unsigned char byte = 0;
-    counter = 0;
     unsigned char mask = 1;
-
-
+    
+    counter = 0;
     for (int i = 0; i < encode.size(); i++) {
         byte <<= mask;
         
@@ -103,30 +107,28 @@ void WriteToFile(const string& encode, ofstream& out, size_t& counter) {
 
     // Обработка не записанных битов
     if (counter > 0) {
-        byte <<= (8 - counter); // дополнение до байта
+        byte <<= (8 - counter); // Дополнение до байта
         out.put(byte);
     }
+}
 
+// Функция записи дерева Хаффмана в файл
+// Нужна для декодирования
+void WriteHTreeInFile(const unordered_map<char, string>& huffmanCodes, ofstream& out) {
+    for (auto p: huffmanCodes) {
+        if (p.first == '\n') {
+            out << "_" << " " << p.second << endl; // нужно для символа перевода строки
+            continue;
+        }
+        out << p.first << " " << p.second << endl;
+    }
     return;
 }
 
-// // Функция записи дерева Хаффмана в файл
-// // Нужна для декодирования
-// void WriteHTreeInFile(const unordered_map<char, string>& huffmanCodes, ofstream& out) {
-//     for (auto p: huffmanCodes) {
-//         if (p.first == '\n') {
-//             out << "_" << " " << p.second << endl; // нужно для символа перевода строки
-//             continue;
-//         }
-//         out << p.first << " " << p.second << endl;
-//     }
-//     return;
-// }
 
-
-string Decoder(Node* root, const string& encode) {
+// Декодирование по дереву
+string DecoderFromTree(Node* root, const string& encode) {
     string decode = "";
-
     Node* current = root;
 
     for (int i = 0; i < encode.size(); i++) {
@@ -143,6 +145,20 @@ string Decoder(Node* root, const string& encode) {
 
     return decode;
 }
+
+
+// string DecoderFromHuffmanCodes(const string& encode, const unordered_map<char, string>& huffmanCodes) {
+//     string decode = "";
+
+//     string code = "";
+
+//     for (int i = 0; i < encode.size(); i++) {
+
+//     }
+
+
+
+// }
 
 
 string ReadInEncodeFile(ifstream& in, size_t bits) {
@@ -163,74 +179,116 @@ string ReadInEncodeFile(ifstream& in, size_t bits) {
     int extra = 8 - bits;
 
     if (bits > 0) {
-        encode.erase(encode.size() - extra); // С учетом терминального символа
-        encode += '\0';
+        encode.erase(encode.size() - extra);
     }
 
     return encode;
 }
 
 
-int main() {
-    // Locale не работает...
-    //setlocale(LC_ALL, "ru-RU.UTF-8");
-    string source = ""; // исходная строка
-    string encode = ""; // Закодированная строка
-    unordered_map<char, unsigned long long> Tab; // Таблица частотности
+void HuffmanCoding(ifstream& in, ofstream& out) {
+    string sourceText = "";                               // Исходная строка
+    string encodeText = "";                               // Закодированная строка
+    unordered_map<char, unsigned long long> Tab;          // Таблица частотности символов
     priority_queue<Node*, vector<Node*>, Compare> pQueue; // Очередь с приоритетом
-    unordered_map<char, string> huffmanCodes; // Таблица Хаффмана
-    ifstream in("text.txt");
-    ofstream out("encode.txt");
-    //ofstream ht("huffmanTree.txt");
-    ifstream inEncode("encode.txt");
-    // if (!in.is_open() || !out.is_open()) {
-    //     cout << "File is not opened or not found!\n";
-    //     exit(1);
-    // }
+    unordered_map<char, string> huffmanCodes;             // Таблица Хаффмана
 
-    // Считываю строку
-    char ch;
-    while(in.get(ch))
-        source += ch;
-    
+    ofstream ht("huffmanCodes.txt");             // Для сохранения таблицы Хаффмана
+
+    if (!ht.is_open()) {
+        cout << "File for Huffman Table is not opened!!!" << endl;
+        return;
+    }
+
+    char c;
+    while(in.get(c))
+        sourceText += c;
+
     // Заполняю таблицу частотности
-    for (int i = 0; i < source.size(); i++)
-        Tab[source[i]]++;
-
-    // Заполняем очередь узлами (листьями)
+    for (int i = 0; i < sourceText.size(); i++)
+        Tab[sourceText[i]]++;
+    
+    // Заполняем очередь узлами (изначально листьями)
     for (auto p: Tab)
         pQueue.push(CreateNode(p.first, p.second, NULL, NULL));
 
     Tree tree = BuildTree(pQueue);
-    
+
     // Формирую таблицу
     HuffmanCodes(tree.root, huffmanCodes, "");
-    //WriteHTreeInFile(huffmanCodes, ht);
-    for (int i = 0; i < source.size(); i++)
-        encode += huffmanCodes[source[i]];
-    
-    size_t extraBits = 0;
-    WriteToFile(encode, out, extraBits);
 
+    // Закодированный файл
+    for (int i = 0; i < sourceText.size(); i++)
+        encodeText += huffmanCodes[sourceText[i]];
+    
+    size_t bits = 0; 
+    WriteToFile(encodeText, out, bits);
+
+    WriteHTreeInFile(huffmanCodes, ht);
+
+    ht << "bits " << bits << endl; 
+
+    in.close();
     out.close();
 
-    cout << "Encode string is " << encode << endl;
-    string tmp = ReadInEncodeFile(inEncode, extraBits);
-    
-    for (int i = 0; i < tmp.size(); i++) {
-        if (tmp[i] != encode[i]) {
-            cout << "i = " << i << endl;
-        }
+    cout << "Compression completed!" << endl;
+
+    return;
+}
+
+
+// void Decoding(ifstream& in, ifstream& ht) {
+//     string encodeText = "";
+//     string decodeText = "";
+//     unordered_map<char, string> huffmanCodes; // Таблица Хаффмана
+//     vector<string> fileInVector;
+
+//     string line = "";
+//     while (getline(ht, line))
+//         fileInVector.push_back(line);
+
+//     // До предпоследней строки
+//     // Так как предпоследняя строка это количество значащих битов
+//     for (int i = 0; i < fileInVector.size() - 1; i++) {
+//         string tmp = fileInVector[i];
+//         huffmanCodes[tmp[0]] = tmp.substr(2);
+//     }
+
+//     line = fileInVector[fileInVector.size() - 1];
+//     size_t bits = stoi(line.substr(5));
+
+//     encodeText = ReadInEncodeFile(in, bits);
+// }
+
+
+
+int main() {
+    ifstream in("text.txt");
+    ofstream out("encode.txt");
+    ifstream inE("encode.txt");
+    ifstream inHT("huffmanCodes.txt");
+
+    if (!in.is_open() || !out.is_open()) {
+        cout << "Error: File is not opened or not found!\n";
+        exit(1);
     }
-    cout << "Encode string is " << tmp << endl;
 
-    string result = "";
-    result = Decoder(tree.root, encode);
+    // int choice = 1;
+    // cout << "Choose: " << endl;
+    // cout << "1: Coder" << endl;
+    // cout << "2: Decoder" << endl;
+    
+    //cin >> choice;
 
-    cout << result << endl;
+    // if (choice != 1 || choice != 2) {
+    //     cout << "Choose from list!!!" << endl;
+    //     exit(1);
+    // }
 
-    // for (auto p: huffmanCodes)
-    //     cout << "Char: " << p.first << " Code: " << p.second << endl; 
+
+    HuffmanCoding(in, out);
+
+    // Decoding(inE, inHT);
 
     return 0;
 }
