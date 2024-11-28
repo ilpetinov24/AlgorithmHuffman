@@ -53,7 +53,13 @@ Tree BuildTree(priority_queue<Node*, vector<Node*>, Compare> nodes) {
     
     if (nodes.size() == 0)
         return tree;
-
+        
+    if (nodes.size() == 1) {
+        Node* leaf = nodes.top();
+        tree.root = CreateNode('\0', leaf->frequency, leaf, NULL);
+        return tree;
+    }
+    
     while (nodes.size() != 1) {
         Node* l = nodes.top();
         nodes.pop();
@@ -74,9 +80,17 @@ void HuffmanCodes(Node* root, unordered_map<char, string>& huffmanCodes, string 
     if (root == NULL)
         return;
 
+
     // Если дошли до листьев дерева, то заполняем таблицу
-    if (root->left == NULL && root->right == NULL) 
+    if (root->left == NULL && root->right == NULL) {
+        // Обработка одного символа
+        if (code == "") {
+           huffmanCodes[root->key] = "0";
+           return; 
+        }
+
         huffmanCodes[root->key] = code;
+    }
     
     // Рекурсивно проходим по всем узлам и формируем код для каждого символа в таблице
     HuffmanCodes(root->left, huffmanCodes, code + "0");
@@ -150,11 +164,17 @@ string DecoderFromTree(Node* root, const string& encode) {
 // Декодирование при помощи таблицы Хаффмана
 string DecoderFromHuffmanCodes(const string& encode, const unordered_map<char, string>& huffmanCodes) {
     string decode = "";
-    
     string code = "";
+
+    // Проверка на один символ
+    if (huffmanCodes.size() == 1) {
+        for (auto p: huffmanCodes)
+            decode += p.first;
+        return decode;
+    }
+
     for (int i = 0; i < encode.size(); i++) {
         code += encode[i];
-
         for (auto p: huffmanCodes) {
             if (p.second == code) {
                 if (p.first == '_') {
@@ -162,14 +182,13 @@ string DecoderFromHuffmanCodes(const string& encode, const unordered_map<char, s
                     code = ""; 
                     break;
                 }
-
                 decode += p.first;
                 code = "";
-                
                 break;
             }
         }
     }
+
     return decode;
 }
 
@@ -192,9 +211,9 @@ string ReadInEncodeFile(ifstream& in, size_t bits) {
     if (encode.size() != 0) {
         int extra = 8 - bits;
 
-        if (bits > 0) {
+        if (bits > 0)
             encode.erase(encode.size() - extra);
-        }
+
     }
     return encode;
 }
@@ -235,6 +254,8 @@ void HuffmanCoding(ifstream& in, ofstream& out) {
     for (int i = 0; i < sourceText.size(); i++)
         encodeText += huffmanCodes[sourceText[i]];
     
+    // cout << encodeText << endl;
+
     size_t bits = 0; 
     WriteToFile(encodeText, out, bits);
 
@@ -272,10 +293,10 @@ void Decoding(ifstream& in, ifstream& ht) {
     size_t bits = stoi(line.substr(5));
 
     encodeText = ReadInEncodeFile(in, bits);
-    cout << encodeText << endl;
+    // cout << encodeText << endl;
     decodeText = DecoderFromHuffmanCodes(encodeText, huffmanCodes);
 
-    cout << "Decode text is " << decodeText << endl;
+    cout << "Decode text: \n" << decodeText << endl;
 
     in.close();
     ht.close();
@@ -296,7 +317,7 @@ int main() {
         
         if (!in.is_open() || !out.is_open()) {
             cout << "File is not found!!!" << endl;
-            exit(0);
+            exit(1);
         }
 
         HuffmanCoding(in, out);
@@ -306,13 +327,12 @@ int main() {
 
         if (!inE.is_open() || !inHT.is_open()) {
             cout << "File is not found!!!" << endl;
-            exit(0);
+            exit(1);
         }
         
         Decoding(inE, inHT);
-    } else {
+    } else 
         cout << "Choose from list!!!" << endl;
-    }
 
     return 0;
 }
