@@ -7,7 +7,7 @@
 #include <fstream>
 #include <clocale>
 #include <stdlib.h>
-
+#include <map>
 using namespace std;
 
 // Узел бинарного дерева
@@ -100,7 +100,7 @@ void HuffmanCodes(Node* root, unordered_map<char, string>& huffmanCodes, string 
 
 
 // Функция для записи закодированных данных в файл
-void WriteToFile(const string& encode, ofstream& out, unordered_map<char, unsigned long long> Tab) {
+void WriteToFile(const string& encode, ofstream& out, map<char, unsigned long long> Tab) {
     unsigned char byte = 0;
     unsigned char mask = 1;
     size_t counter = 0;
@@ -135,6 +135,7 @@ void WriteToFile(const string& encode, ofstream& out, unordered_map<char, unsign
 
     out << counter << '|';
     
+
     // Запись частот в файл
     for (auto p: Tab) {
         if (p.first == '\n') {
@@ -220,7 +221,7 @@ string DecoderFromHuffmanCodes(const string& encode, const unordered_map<char, s
 }
 
 
-string ReadInEncodeFile(ifstream& file, unordered_map<char, unsigned long long>& Tab) {
+string ReadInEncodeFile(ifstream& file, map<char, unsigned long long>& Tab) {
     string encode = "";
     unsigned char byte;
     unsigned char mask = 1;
@@ -234,7 +235,7 @@ string ReadInEncodeFile(ifstream& file, unordered_map<char, unsigned long long>&
     counterBits = stoi(tmp);
     
     string s = "";
-    for (int i = 2; i < table.size() - 1; i++) {
+    for (int i = 2; i < table.size(); i++) {
         if (table[i] == '|') {
             tableInVector.push_back(s);
             s = "";
@@ -247,18 +248,12 @@ string ReadInEncodeFile(ifstream& file, unordered_map<char, unsigned long long>&
         s += table[i];
     }
     
-    tableInVector.push_back(s);
+    // tableInVector.push_back(s);
 
     for (auto p: tableInVector) {
-        cout << p << endl;
-    }
-
-    for (auto p: tableInVector)
         Tab[p[0]] = stoi(p.substr(2));
-
-    for (auto p: Tab) {
-        cout << p.first << " - " << p.second << endl;
     }
+
     while (file.get((char &)byte)) {
         for (int i = 7; i >= 0; i--) {
             unsigned char tmp = (byte >> i);
@@ -277,7 +272,7 @@ string ReadInEncodeFile(ifstream& file, unordered_map<char, unsigned long long>&
 void HuffmanCoding(ifstream& in, ofstream& out) {
     string sourceText = "";                               // Исходная строка
     string encodeText = "";                               // Закодированная строка
-    unordered_map<char, unsigned long long> Tab;          // Таблица частотности символов
+    map<char, unsigned long long> Tab;                    // Таблица частотности символов
     priority_queue<Node*, vector<Node*>, Compare> pQueue; // Очередь с приоритетом
     unordered_map<char, string> huffmanCodes;             // Таблица Хаффмана
 
@@ -289,6 +284,7 @@ void HuffmanCoding(ifstream& in, ofstream& out) {
     for (int i = 0; i < sourceText.size(); i++)
         Tab[sourceText[i]]++;
     
+
     // Заполняем очередь узлами (изначально листьями)
     for (auto p: Tab)
         pQueue.push(CreateNode(p.first, p.second, NULL, NULL));
@@ -320,7 +316,7 @@ void Decoding(ifstream& in, ofstream& out) {
     string encodeText = "";
     string decodeText = "";
     unordered_map<char, string> huffmanCodes; // Таблица Хаффмана
-    unordered_map<char, unsigned long long> Tab;
+    map<char, unsigned long long> Tab;
     priority_queue<Node*, vector<Node*>, Compare> pQueue; // Очередь с приоритетом     
    
     encodeText = ReadInEncodeFile(in, Tab);
@@ -331,9 +327,6 @@ void Decoding(ifstream& in, ofstream& out) {
 
     Tree tree = BuildTree(pQueue);
 
-    for (auto p: Tab) {
-        cout << p.first << " - " << p.second << endl;
-    }
 
     // Формирую таблицу
     HuffmanCodes(tree.root, huffmanCodes, "");
