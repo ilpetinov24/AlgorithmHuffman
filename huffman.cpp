@@ -6,8 +6,10 @@
 #include <unordered_map>
 #include <fstream>
 #include <clocale>
+#include <bitset>
 #include <stdlib.h>
 #include <map>
+#include <Windows.h>
 using namespace std;
 
 // Узел бинарного дерева
@@ -99,8 +101,46 @@ void HuffmanCodes(Node* root, unordered_map<char, string>& huffmanCodes, string 
 }
 
 
+void WriteBinNumInFile(ofstream& out, int number) {
+    unsigned char mask = 1;
+    unsigned char byte = 0;
+    bitset<32> binNumber(number);
+    string binStr = binNumber.to_string();
+    int counter = 0;
+    for (int i = 0; i < binStr.length(); i++) {
+        byte <<= mask;
+
+        if (binStr[i] == '1') {
+            byte |= mask;
+        }
+        counter++;
+        if (counter == 8) {
+            counter = 0;
+            out.put(byte);
+            byte = 0;
+        }
+    }
+}
+
+int ReadBinNumInFile(ifstream& in) {
+    unsigned char mask = 1;
+    int result = 0;
+    string binStr = "";
+
+    for (int i = 0; i < 4; i++) {
+        unsigned char a = in.get();
+        bitset<8> b(a);
+        binStr += b.to_string();
+    }
+
+    bitset<32> tmp(binStr);
+
+    return tmp.to_ullong();
+}
+
+
 // Функция для записи закодированных данных в файл
-void WriteToFile(const string& encode, ofstream& out, map<char, unsigned long long> Tab) {
+void WriteToFile(const string& encode, ofstream& out, map<char, int> Tab) {
     unsigned char byte = 0;
     unsigned char mask = 1;
     size_t counter = 0;
@@ -133,18 +173,20 @@ void WriteToFile(const string& encode, ofstream& out, map<char, unsigned long lo
 
     ifstream rtempFile("tmp.txt");
 
-    out << counter << '|';
+    out << counter;
     
 
     // Запись частот в файл
     for (auto p: Tab) {
         if (p.first == '\n') {
-            out << "--" << ':' << p.second << '|';
+            out << '_';
+            WriteBinNumInFile(out, p.second);
             continue;
         }
-        out << p.first << ':' << p.second << '|';
+        out << p.first;
+        WriteBinNumInFile(out, p.second);
     }
-    out << '\n';
+    out << "\n";
 
     char current;
     while (rtempFile.get(current))
@@ -221,38 +263,25 @@ string DecoderFromHuffmanCodes(const string& encode, const unordered_map<char, s
 }
 
 
-string ReadInEncodeFile(ifstream& file, map<char, unsigned long long>& Tab) {
+string ReadInEncodeFile(ifstream& file, map<char, int>& Tab) {
     string encode = "";
     unsigned char byte;
     unsigned char mask = 1;
-    size_t counterBits;
-    string table = "";
-    vector<string> tableInVector;
+    size_t counterBits = file.get() - '0';
 
-    getline(file, table);
-    string tmp = "";
-    tmp += table[0];
-    counterBits = stoi(tmp);
-    
-    string s = "";
-    for (int i = 2; i < table.size(); i++) {
-        if (table[i] == '|') {
-            tableInVector.push_back(s);
-            s = "";
+    char current;
+    while (file.get(current)) {
+
+        if (current == '_') {
+            Tab['\n'] = ReadBinNumInFile(file);
             continue;
         }
-        if ((i < table.size() - 1) && (table[i] == '-' && table[i + 1] == '-')) {
-            s += '\n';
-            i += 2;
+        if (current == '\n') {
+            break;
         }
-        s += table[i];
+        Tab[current] = ReadBinNumInFile(file);
     }
     
-    // tableInVector.push_back(s);
-
-    for (auto p: tableInVector) {
-        Tab[p[0]] = stoi(p.substr(2));
-    }
 
     while (file.get((char &)byte)) {
         for (int i = 7; i >= 0; i--) {
@@ -272,14 +301,14 @@ string ReadInEncodeFile(ifstream& file, map<char, unsigned long long>& Tab) {
 void HuffmanCoding(ifstream& in, ofstream& out) {
     string sourceText = "";                               // Исходная строка
     string encodeText = "";                               // Закодированная строка
-    map<char, unsigned long long> Tab;                    // Таблица частотности символов
+    map<char, int> Tab;                                   // Таблица частотности символов
     priority_queue<Node*, vector<Node*>, Compare> pQueue; // Очередь с приоритетом
     unordered_map<char, string> huffmanCodes;             // Таблица Хаффмана
 
     char c;
-    while(in.get(c))
+    while (in.get(c)) {
         sourceText += c;
-
+    }
     // Заполняю таблицу частотности
     for (int i = 0; i < sourceText.size(); i++)
         Tab[sourceText[i]]++;
@@ -307,7 +336,7 @@ void HuffmanCoding(ifstream& in, ofstream& out) {
     out.close();
 
     cout << "Compression completed!" << endl;
-
+    system("pause");
     return;
 }
 
@@ -316,7 +345,7 @@ void Decoding(ifstream& in, ofstream& out) {
     string encodeText = "";
     string decodeText = "";
     unordered_map<char, string> huffmanCodes; // Таблица Хаффмана
-    map<char, unsigned long long> Tab;
+    map<char, int> Tab;
     priority_queue<Node*, vector<Node*>, Compare> pQueue; // Очередь с приоритетом     
    
     encodeText = ReadInEncodeFile(in, Tab);
@@ -332,17 +361,24 @@ void Decoding(ifstream& in, ofstream& out) {
     HuffmanCodes(tree.root, huffmanCodes, "");
 
     decodeText = DecoderFromHuffmanCodes(encodeText, huffmanCodes);
-
-    cout << "Decode text: \n" << decodeText << endl;
     
     out << decodeText;
 
     in.close();
     out.close();
+
+    cout << "Decompression completed!" << endl;
+    cout << "Text save in decode.txt" << endl;
+    system("pause");
 }
 
 
-int main() {  
+int main() {
+    setlocale(LC_ALL, "ru_RU.cp1251");
+    system("chcp 1251");
+    system("cls");
+    std::locale::global(std::locale(""));
+    
     int choice = 0;
     cout << "Choose: " << endl;
     cout << "1: Coder" << endl;
@@ -353,7 +389,6 @@ int main() {
     if (choice == 1) {
         ifstream in("text.txt");
         ofstream out("encode.txt");
-        
         if (!in.is_open() || !out.is_open()) {
             cout << "File is not found!!!" << endl;
             exit(1);
@@ -363,7 +398,6 @@ int main() {
     } else if (choice == 2) {
         ifstream input("encode.txt");
         ofstream out("decode.txt");
-
         if (!input.is_open() || !out.is_open()) {
             cout << "Files is not found!!!" << endl;
             exit(1);
