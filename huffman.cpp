@@ -145,7 +145,7 @@ void WriteToFile(const string& encode, ofstream& out, map<char, int> Tab) {
     unsigned char mask = 1;
     size_t counter = 0;
 
-    ofstream tempFile("tmp.txt");
+    ofstream tempFile("tmp.txt", ios::binary);
     
     counter = 0;
     for (int i = 0; i < encode.size(); i++) {
@@ -171,7 +171,7 @@ void WriteToFile(const string& encode, ofstream& out, map<char, int> Tab) {
 
     tempFile.close();
 
-    ifstream rtempFile("tmp.txt");
+    ifstream rtempFile("tmp.txt", ios::binary);
 
     out << counter;
     
@@ -387,8 +387,8 @@ int main() {
     cin >> choice;
 
     if (choice == 1) {
-        ifstream in("text.txt");
-        ofstream out("encode.txt");
+        ifstream in("text.txt", ios::binary);
+        ofstream out("encode.txt", ios::binary);
         if (!in.is_open() || !out.is_open()) {
             cout << "File is not found!!!" << endl;
             exit(1);
@@ -396,8 +396,8 @@ int main() {
 
         HuffmanCoding(in, out);
     } else if (choice == 2) {
-        ifstream input("encode.txt");
-        ofstream out("decode.txt");
+        ifstream input("encode.txt", ios::binary);
+        ofstream out("decode.txt", ios::binary);
         if (!input.is_open() || !out.is_open()) {
             cout << "Files is not found!!!" << endl;
             exit(1);
